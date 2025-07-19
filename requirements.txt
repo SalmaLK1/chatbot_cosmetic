@@ -1,0 +1,9 @@
+langchain>=0.1.0
+openai>=1.0.0
+faiss-cpu
+tiktoken
+python-dotenv
+streamlit
+PyPDF2
+pandas
+sentence-transformers
