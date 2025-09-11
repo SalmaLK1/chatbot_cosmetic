@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chatbot RAG IA - Multi-chat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+  <!-- Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Thème -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "dark") {
+        document.body.classList.add("dark-mode");
+      }
+    });
+  </script>
+</head>
+<body>
+
+<div id="app">
+  <aside id="sidebar">
+    <header class="sidebar-header">
+      <div class="brand">
+        <i class="fas fa-robot brand-icon"></i>
+        <h2>ChatBot IA</h2>
+      </div>
+      <button id="new-chat-btn" class="new-chat-btn" title="Nouvelle conversation">
+        <i class="fas fa-plus"></i>
+        <span>Nouvelle conversation</span>
+      </button>
+    </header>
+
+    <div class="chat-list-container">
+      <div class="thread-search">
+        <input type="text" id="thread-search-input" placeholder="Rechercher une conversation..." aria-label="Rechercher une conversation">
+        <i class="fas fa-search search-icon"></i>
+      </div>
+      <nav id="chat-list" aria-label="Liste des conversations" class="chat-list">
+        <!-- Threads injectés dynamiquement ici -->
+      </nav>
+
+      <!-- Pagination des threads -->
+      <div class="pagination">
+        <button id="prev-page" class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        <span id="page-info">Page 1</span>
+        <button id="next-page" class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+
+    <footer class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-details">
+          <span class="user-name">Utilisateur</span>
+          <span class="user-status">En ligne</span>
+        </div>
+      </div>
+    </footer>
+  </aside>
+
+  <main id="chat-main" aria-live="polite">
+    <div id="status-indicator" style="display:none;"></div>
+
+    <header id="chat-header" class="chat-header">
+      <div class="chat-header-info">
+        <h2 id="chat-title">Nouvelle conversation</h2>
+        <span class="chat-subtitle">Assistant IA avec recherche documentaire</span>
+      </div>
+      <div class="chat-header-actions">
+        <button class="header-btn" id="settings-btn" title="Paramètres">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button class="header-btn" id="info-btn" title="Informations">
+          <i class="fas fa-info-circle"></i>
+        </button>
+        <button class="header-btn" id="toggle-context-btn" title="Afficher / Masquer les sources">
+          <i class="fas fa-book-open"></i>
+        </button>
+        <button class="header-btn" id="export-btn" title="Exporter la conversation">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </header>
+
+    <section id="chat-history" class="chat-history" aria-label="Historique de la conversation">
+      <div class="welcome-message">
+        <div class="welcome-icon"><i class="fas fa-comments"></i></div>
+        <h3>Bienvenue dans votre assistant IA</h3>
+        <p>Posez vos questions ou importez des documents pour commencer une conversation intelligente.</p>
+      </div>
+    </section>
+
+    <section id="used-chunks" class="used-chunks" style="display:none;">
+      <h4>📂 Sources utilisées</h4>
+      <div id="chunks-list"></div>
+    </section>
+
+    <div id="loading" class="loading-container" style="display:none;" aria-live="assertive" aria-busy="true" role="alert">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <span>Assistant en train de réfléchir...</span>
+      </div>
+    </div>
+
+    <div class="chat-input-container">
+      <form id="chat-form" autocomplete="off" class="chat-form">
+        <div class="input-wrapper">
+          <textarea id="chat-input" placeholder="Tapez votre message ici..." rows="1" required class="chat-textarea"></textarea>
+          <div class="input-actions">
+            <button type="button" id="record-btn" class="action-btn record-btn" title="Enregistrer un message audio">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <label for="file-input" class="action-btn file-btn" title="Importer un fichier">
+              <i class="fas fa-paperclip"></i>
+              <input type="file" id="file-input" accept=".pdf,.docx,.png,.jpg,.jpeg,.mp3,.wav,.m4a" multiple style="display: none;" />
+            </label>
+            <button type="submit" id="send-btn" class="send-btn" title="Envoyer le message">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-options">
+          <label class="rag-toggle">
+            <input type="checkbox" id="use-rag" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">
+              <i class="fas fa-search"></i>
+              Recherche documentaire (RAG)
+            </span>
+          </label>
+          <div class="file-info" id="file-info" style="display: none;">
+            <i class="fas fa-file"></i>
+            <span class="file-name"></span>
+            <button type="button" class="remove-file-btn" title="Supprimer le fichier">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div id="record-status" class="record-status" style="display:none;">
+          <div class="record-animation">
+            <div class="record-dot"></div>
+          </div>
+          <span>Enregistrement en cours...</span>
+        </div>
+      </form>
+    </div>
+
+    <div id="notification-container" class="notification-container" style="display:none;">
+      <div class="notification">
+        <i class="fas fa-info-circle notification-icon"></i>
+        <span id="notification-message"></span>
+        <div class="notification-actions">
+          <button id="retry-btn" class="notification-btn retry-btn" style="display:none;">
+            <i class="fas fa-redo"></i>
+            Réessayer
+          </button>
+          <button id="dismiss-btn" class="notification-btn dismiss-btn">
+            <i class="fas fa-times"></i>
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal paramètres -->
+<div id="settings-modal" class="modal" aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-header">
+      <h3 id="settings-title">Paramètres</h3>
+      <button class="modal-close" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-item">
+        <label for="theme-select">Thème</label>
+        <select id="theme-select" name="theme-select">
+          <option value="light">Clair</option>
+          <option value="dark">Sombre</option>
+          <option value="auto">Automatique</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="sound-notifications">Notifications sonores</label>
+        <input type="checkbox" id="sound-notifications" checked />
+      </div>
+      <div class="setting-item">
+        <label for="auto-scroll">Défilement automatique</label>
+        <input type="checkbox" id="auto-scroll" checked />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'information -->
+<div id="info-modal" class="modal" aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="info-title">
+    <div class="modal-header">
+      <h3 id="info-title">Informations sur l'Assistant</h3>
+      <button class="modal-close" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-section">
+        <h4><i class="fas fa-robot"></i> Fonctionnalités</h4>
+        <ul>
+          <li>Chat intelligent avec IA</li>
+          <li>Recherche dans vos documents (RAG)</li>
+          <li>Support de fichiers multiples</li>
+          <li>Enregistrement audio</li>
+          <li>Export des conversations</li>
+        </ul>
+      </div>
+      <div class="info-section">
+        <h4><i class="fas fa-keyboard"></i> Raccourcis</h4>
+        <ul>
+          <li><kbd>Ctrl</kbd> + <kbd>Entrée</kbd> : Envoyer le message</li>
+          <li><kbd>Échap</kbd> : Fermer les modales</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}" defer></script>
+
+</body>
+</html>
