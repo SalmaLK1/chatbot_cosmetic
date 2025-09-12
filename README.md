@@ -120,6 +120,10 @@ Ce projet propose un **assistant intelligent multimodal RAG**, combinant **index
 Il constitue une base solide pour des applications réelles en **assistance virtuelle** et **traitement documentaire intelligent**.  
 
 ---
+## 📚 Rapport complet
+
+Le rapport détaillé est disponible en [PDF](./assets/chatbot.pdf).
+
 
 ## 👤 Auteur
 **Bouizdouzene Bilal**  
