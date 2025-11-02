@@ -126,9 +126,11 @@ Le rapport détaillé est disponible en [PDF](./assets/chatbot.pdf).
 
 
 ## 👤 Auteur
+**Lakehal Salma**  
 **Bouizdouzene Bilal**  
 _Master Web Intelligence et Data Science_  
 Université Sidi Mohamed Ben Abdellah – Fès / Université Sorbonne Paris Nord
+
 
 ---
 
